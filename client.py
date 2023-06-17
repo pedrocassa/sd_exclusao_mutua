@@ -1,7 +1,6 @@
 import socket
 import threading
 from message import create_message, get_values_from_message
-from logger import write_log
 from thread_id import get_new_thread_id
 from twoPhaseLocking import TwoPhaseLocking
 
@@ -24,13 +23,11 @@ def receive_message(id):
     sender, received_message = get_values_from_message(str(message))
     
     if received_message == GRANTED_MESSAGE:
-        tpl.start_transaction(id)
+        tpl.start_transaction("T1")
     
-        tpl.write_item(id, received_message)
+        tpl.write_item("T1", id, received_message)
 
-        tpl.end_transaction(id)
-        
-        threading.sleep(SLEEP_TIME)
+        tpl.end_transaction("T1")
         
         new_message = create_message(sender, RELEASE_MESSAGE)
 
