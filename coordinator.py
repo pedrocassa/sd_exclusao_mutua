@@ -1,4 +1,5 @@
 import socket
+import threading
 from twoPhaseLocking import TwoPhaseLocking
 from logger import write_log
 from message import create_message, get_values_from_message
@@ -18,16 +19,7 @@ Q = []
 
 print("Coordenador esperando por requisições...")
 
-while True:
-    data, addr = sock.recvfrom(1024)
-    message = data.decode()
-    
-    sender, receiver, received_message = get_values_from_message(str(message))
-    
-    print(received_message)
-    
-    write_log(LOG_FILE_NAME, str(received_message))
-
+def mutual_exclusion(received_message):
     if received_message == REQUEST_MESSAGE:
         if len(Q) == 0:
             new_message = create_message(receiver, sender, GRANTED_MESSAGE)
@@ -43,9 +35,26 @@ while True:
             process = str(Q[0])
             new_message = create_message(receiver, process.id, GRANTED_MESSAGE)
             sock.sendto(new_message.encode(), (process.addr))
-        
-    elif received_message == "END":
+
+while True:
+    data, addr = sock.recvfrom(1024)
+    message = data.decode()
+    
+    sender, receiver, received_message = get_values_from_message(str(message))
+    
+    print(received_message)
+    
+    write_log(LOG_FILE_NAME, str(received_message))
+
+    if received_message == "END":
         break
+        
+    mutual_exclusion_thread = threading.Thread(target=mutual_exclusion(received_message))
+    
+    mutual_exclusion_thread.start()
+    
+    mutual_exclusion_thread.joint()
+    
 
 sock.close()
 print("Programa encerrado")

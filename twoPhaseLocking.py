@@ -12,7 +12,7 @@ class TwoPhaseLocking:
     def start_transaction(self, id_transaction):
         transaction = Transaction(id_transaction)
         
-        write_log(LOG_FILE_NAME, "-trans_id:" + str(id_transaction))
+        write_log(LOG_FILE_NAME, "-- transaction_id:" + str(id_transaction))
         
         self.transactions[id_transaction] = transaction
 

@@ -2,6 +2,8 @@ import socket
 import threading
 from message import create_message, get_values_from_message
 from logger import write_log
+from thread_id import get_new_thread_id
+from twoPhaseLocking import TwoPhaseLocking
 
 HOST = "localhost"
 PORT = 12345
@@ -9,35 +11,50 @@ REQUEST_MESSAGE = "REQUEST"
 GRANTED_MESSAGE = "GRANTED"
 RELEASE_MESSAGE = "RELEASE"
 LOG_FILE_NAME = "clientLog.txt"
+SLEEP_TIME = 1000
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def receive_message():
+tpl = TwoPhaseLocking()
+
+def receive_message(id):
     data, addr = sock.recvfrom(1024)
     message = data.decode()
     
-    sender, receiver, received_message = get_values_from_message(str(message))
+    sender, received_message = get_values_from_message(str(message))
     
     if received_message == GRANTED_MESSAGE:
-        write_log(LOG_FILE_NAME, sender + " - " + receiver + " - " + received_message)
+        tpl.start_transaction(id)
+    
+        tpl.write_item(id, received_message)
+
+        tpl.end_transaction(id)
         
-        new_message = create_message(sender, receiver, RELEASE_MESSAGE)
+        threading.sleep(SLEEP_TIME)
+        
+        new_message = create_message(sender, RELEASE_MESSAGE)
 
         sock.sendto(new_message.encode(), (HOST, PORT))    
 
 def main():
-    m = create_message('1', "2", REQUEST_MESSAGE)
+    r = 5
     
-    sock.sendto(m.encode(), (HOST, PORT))
-    
-    thread1 = threading.Thread(target=receive_message())
-
-    thread1.start()
+    while(r > 0):
+        new_thread_id = get_new_thread_id()
         
-    thread1.join()
- 
-    sock.close()
+        m = create_message(new_thread_id, REQUEST_MESSAGE)
+        
+        sock.sendto(m.encode(), (HOST, PORT))
+        
+        thread1 = threading.Thread(target=receive_message(new_thread_id))
+
+        thread1.start()
+            
+        thread1.join()
+        
+        r = r - 1
     
+    sock.close()    
     print("Cliente encerrado")
 
 if __name__ == "__main__":
