@@ -28,7 +28,7 @@ while True:
     
     write_log(LOG_FILE_NAME, str(received_message))
 
-    if message == REQUEST_MESSAGE:
+    if received_message == REQUEST_MESSAGE:
         if len(Q) == 0:
             new_message = create_message(receiver, sender, GRANTED_MESSAGE)
             sock.sendto(new_message.encode(), (addr))
@@ -37,14 +37,14 @@ while True:
             "id": sender,
         })
         
-    elif message == RELEASE_MESSAGE:
+    elif received_message == RELEASE_MESSAGE:
         Q.pop(0)
-        if len(Q) != 0:
+        if len(Q) > 0:
             process = str(Q[0])
             new_message = create_message(receiver, process.id, GRANTED_MESSAGE)
             sock.sendto(new_message.encode(), (process.addr))
         
-    elif message == "END":
+    elif received_message == "END":
         break
 
 sock.close()

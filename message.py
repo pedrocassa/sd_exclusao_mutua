@@ -1,6 +1,6 @@
 message_type_dict = {
     "REQUEST": "1",
-    "GRANT": "2",
+    "GRANTED": "2",
     "RELEASE": "3",
     "END": "4"
 }

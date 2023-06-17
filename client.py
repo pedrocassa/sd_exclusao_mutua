@@ -1,40 +1,42 @@
 import socket
 import threading
 from message import create_message, get_values_from_message
+from logger import write_log
+from thread_id import get_new_thread_id
 
 HOST = "localhost"
 PORT = 12345
 REQUEST_MESSAGE = "REQUEST"
 GRANTED_MESSAGE = "GRANTED"
 RELEASE_MESSAGE = "RELEASE"
+LOG_FILE_NAME = "clientLog.txt"
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def cord(message):
+def receive_message(message):
     sender, receiver, received_message = get_values_from_message(str(message))
     
     if received_message == GRANTED_MESSAGE:
-        #AREA CRITICA
+        write_log(LOG_FILE_NAME, sender + " - " + receiver + " - " + received_message)
         
-        mensagem = create_message(sender, receiver, RELEASE_MESSAGE)
+        new_message = create_message(sender, receiver, RELEASE_MESSAGE)
 
-        sock.sendto(mensagem.encode(), (HOST, PORT))
+        sock.sendto(new_message.encode(), (HOST, PORT))    
 
 def main():
-    mensagem = create_message("1", "2", REQUEST_MESSAGE)
-    sock.sendto(mensagem.encode(), (HOST, PORT))
-
+    m = create_message('1', "2", REQUEST_MESSAGE)
+    
+    sock.sendto(m.encode(), (HOST, PORT))
+    
     data, addr = sock.recvfrom(1024)
     message = data.decode()
-
-    thread1 = threading.Thread(target=cord(message))
+    
+    thread1 = threading.Thread(target=receive_message(message))
 
     thread1.start()
         
     thread1.join()
  
-    print(message)
-
     sock.close()
     
     print("Cliente encerrado")
