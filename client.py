@@ -2,7 +2,6 @@ import socket
 import threading
 from message import create_message, get_values_from_message
 from logger import write_log
-from thread_id import get_new_thread_id
 
 HOST = "localhost"
 PORT = 12345
@@ -13,7 +12,10 @@ LOG_FILE_NAME = "clientLog.txt"
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def receive_message(message):
+def receive_message():
+    data, addr = sock.recvfrom(1024)
+    message = data.decode()
+    
     sender, receiver, received_message = get_values_from_message(str(message))
     
     if received_message == GRANTED_MESSAGE:
@@ -28,10 +30,7 @@ def main():
     
     sock.sendto(m.encode(), (HOST, PORT))
     
-    data, addr = sock.recvfrom(1024)
-    message = data.decode()
-    
-    thread1 = threading.Thread(target=receive_message(message))
+    thread1 = threading.Thread(target=receive_message())
 
     thread1.start()
         
