@@ -1,74 +1,52 @@
 import socket
-import threading
 from twoPhaseLocking import TwoPhaseLocking
-from datetime import datetime
+from logger import write_log
+from message import create_message, get_values_from_message
 
 HOST = "localhost"
 PORT = 12345
+REQUEST_MESSAGE = "REQUEST"
+GRANTED_MESSAGE = "GRANTED"
+RELEASE_MESSAGE = "RELEASE"
+LOG_FILE_NAME = "coordinatorLog.txt"
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((HOST, PORT))
 
 tpl = TwoPhaseLocking()
-
-def doSomething():
-    # Iniciar uma transação
-    tpl.start_transaction("T1")
-
-    
-    # Ler um item
-    valor = tpl.read_item("T1", "item1")
-    arquivo.write('-->'+valor+'\n')
-    print(valor)
-
-    # Escrever um item
-    tpl.write_item("T1", "item1", "novo_valor")
-
-    # Encerrar uma transação
-    tpl.end_transaction("T1")
-
-def coordenador():
-    # Criar as threads
-    thread1 = threading.Thread(target=doSomething)
-    
-
-    # Iniciar as threads
-    thread1.start()
-    
-
-    # Aguardar as threads finalizarem
-    thread1.join()
-
-    print("Todas as threads encerradas")
+Q = []
 
 print("Coordenador esperando por requisições...")
-
-arquivo = open("CoordinatorLog.txt", 'w')
 
 while True:
     data, addr = sock.recvfrom(1024)
     message = data.decode()
     
-
-    data_e_hora_atuais = datetime.now()
+    sender, receiver, received_message = get_values_from_message(str(message))
     
-    data_e_hora_em_texto = data_e_hora_atuais.strftime('%d/%m/%Y %H:%M')
-                                                       
-    arquivo.write(data_e_hora_em_texto+":"+str(message))
-
-    print(message)
+    print(received_message)
     
-    if message == "REQUEST":
-        coordenador()
+    write_log(LOG_FILE_NAME, str(received_message))
+
+    if message == REQUEST_MESSAGE:
+        if len(Q) == 0:
+            new_message = create_message(receiver, sender, GRANTED_MESSAGE)
+            sock.sendto(new_message.encode(), (addr))
+        Q.append({
+            "addr": addr,
+            "id": sender,
+        })
         
-            
-    elif message == "GRANT":
+    elif message == RELEASE_MESSAGE:
+        Q.pop(0)
+        if len(Q) != 0:
+            process = str(Q[0])
+            new_message = create_message(receiver, process.id, GRANTED_MESSAGE)
+            sock.sendto(new_message.encode(), (process.addr))
+        
+    elif message == "END":
         break
-
-    elif message == "RELEASE":
-        break
-
 
 sock.close()
 print("Programa encerrado")
-arquivo.close()
+
