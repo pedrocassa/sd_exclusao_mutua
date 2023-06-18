@@ -18,50 +18,48 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 tpl = TwoPhaseLocking()
 
-def receive_message(id):
-    data, addr = sock.recvfrom(1024)
-    message = data.decode()
-    
-    sender, received_message = get_values_from_message(str(message))
-    
-    if received_message == GRANTED_MESSAGE:
-        tpl.start_transaction("T1")
-    
-        tpl.write_item("T1", id, received_message)
+class Client:
 
-        tpl.end_transaction("T1")
+    def receive_message(self,id):
+        data, addr = sock.recvfrom(1024)
+        message = data.decode()
         
-        new_message = create_message(sender, RELEASE_MESSAGE)
+        sender, received_message = get_values_from_message(str(message))
+        
+        if received_message == GRANTED_MESSAGE:
+            tpl.start_transaction("T1")
+        
+            tpl.write_item("T1", id, received_message)
 
-        sock.sendto(new_message.encode(), (HOST, PORT))  
+            tpl.end_transaction("T1")
+            
+            new_message = create_message(sender, RELEASE_MESSAGE)
 
-    elif received_message == END_MESSAGE: 
-        new_message = create_message(sender, END_MESSAGE)
+            sock.sendto(new_message.encode(), (HOST, PORT))  
 
-        sock.sendto(new_message.encode(), (HOST, PORT))  
+        elif received_message == END_MESSAGE: 
+            new_message = create_message(sender, END_MESSAGE)
 
-def main():
-    r = 5
-    
-    while(r > 0):
+            sock.sendto(new_message.encode(), (HOST, PORT))  
+
+    def main(self, RUNNING):
+        
         new_thread_id = get_new_thread_id()
         
         m = create_message(new_thread_id, REQUEST_MESSAGE)
         
         sock.sendto(m.encode(), (HOST, PORT))
         
-        thread1 = threading.Thread(target=receive_message(new_thread_id))
+        thread1 = threading.Thread(target=self.receive_message(new_thread_id))
 
         thread1.start()
             
         thread1.join()
         
-        r = r - 1
-    
-    
+        
+        if RUNNING==3:
+            sock.close()
 
-    sock.close()    
-    print("Cliente encerrado")
+          
+        print("Cliente encerrado")
 
-if __name__ == "__main__":
-    main()
