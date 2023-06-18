@@ -3,12 +3,14 @@ import threading
 from message import create_message, get_values_from_message
 from thread_id import get_new_thread_id
 from twoPhaseLocking import TwoPhaseLocking
+from interface import start_interface
 
 HOST = "localhost"
 PORT = 12345
 REQUEST_MESSAGE = "REQUEST"
 GRANTED_MESSAGE = "GRANTED"
 RELEASE_MESSAGE = "RELEASE"
+END_MESSAGE = "END"
 LOG_FILE_NAME = "clientLog.txt"
 SLEEP_TIME = 1000
 
@@ -31,7 +33,12 @@ def receive_message(id):
         
         new_message = create_message(sender, RELEASE_MESSAGE)
 
-        sock.sendto(new_message.encode(), (HOST, PORT))    
+        sock.sendto(new_message.encode(), (HOST, PORT))  
+
+    elif received_message == END_MESSAGE: 
+        new_message = create_message(sender, END_MESSAGE)
+
+        sock.sendto(new_message.encode(), (HOST, PORT))  
 
 def main():
     r = 5
@@ -51,6 +58,8 @@ def main():
         
         r = r - 1
     
+    
+
     sock.close()    
     print("Cliente encerrado")
 
