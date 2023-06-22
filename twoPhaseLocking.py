@@ -2,6 +2,9 @@ from item import Item
 from transaction import Transaction
 from datetime import datetime
 from logger import write_log
+from time import sleep
+from random import randint
+
 
 LOG_FILE_NAME = "transactionLog.txt"
 class TwoPhaseLocking:
@@ -28,6 +31,10 @@ class TwoPhaseLocking:
 
         if transaction.acquire_block(item):
             write_log(LOG_FILE_NAME, str(id_item) + " -- " + str(valor))
+            
+            x = randint(0, 3)
+
+            sleep(x)
             
             return valor
 
